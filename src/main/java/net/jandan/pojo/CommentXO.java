@@ -1,6 +1,13 @@
 package net.jandan.pojo;
 
 public class CommentXO {
+    public CommentXO(Integer commentId, String ipAddr) {
+        this.commentId = commentId;
+        this.ipAddr = ipAddr;
+    }
+    public CommentXO() {
+
+    }
     private Integer commentId;
 
     private String ipAddr;

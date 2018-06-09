@@ -3,9 +3,13 @@ package net.jandan.controller;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import net.jandan.pojo.Comment;
+import net.jandan.pojo.CommentXO;
 import net.jandan.pojo.Tucao;
 import net.jandan.service.CommentService;
+import net.jandan.service.CommentXOService;
 import net.jandan.service.TucaoService;
+import net.jandan.service.TucaoXOService;
+import net.jandan.util.IPUtil;
 import net.jandan.util.JsonUtils;
 import net.jandan.util.Page;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.HtmlUtils;
 import com.alibaba.fastjson.JSON;
+
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +40,11 @@ public class PicCotroller {
     CommentService commentService;
     @Autowired
     TucaoService tucaoService;
+
+    @Autowired
+    CommentXOService commentXOService;
+    @Autowired
+    TucaoXOService tucaoXOService;
 
     @RequestMapping("add")
     public String add(Comment c){
@@ -65,13 +76,24 @@ public class PicCotroller {
 
     @RequestMapping("jandan-vote")
     @ResponseBody
-    public String loginAjax(@RequestParam("comment_id") int id, @RequestParam("like_type") String like_type, @RequestParam("data_type") String data_type,  HttpSession session) {
+    public String loginAjax(@RequestParam("comment_id") int id, @RequestParam("like_type") String like_type, @RequestParam("data_type") String data_type,  HttpServletRequest request) {
 
      //   if(null==user){
      //       return "fail";
      //   }
      //   session.setAttribute("user", user);
+        Map<String,Object> map=new HashMap<String, Object>();
+        map.put("error", 0);
+        map.put("msg", "0DFDFDF");
         if (data_type.equalsIgnoreCase("comment")){
+            String ip = IPUtil.getIpAddr(request);
+            boolean s = commentXOService.isExist(id,ip);
+            if (!s){
+                map.put("error", 1);
+                map.put("msg", "您已投过票");
+                String jsonString = JSON.toJSONString(map);
+                return jsonString;
+            }
             Comment c = commentService.get(id);
             if (c!=null){
                 if (like_type.equalsIgnoreCase("pos")){
@@ -80,6 +102,7 @@ public class PicCotroller {
                     c.setLikeCount(c.getLikeCount()+1);
                 }
                 commentService.update(c);
+                commentXOService.add(new CommentXO(id,ip));
             }
 
         }else if (data_type.equalsIgnoreCase("tucao")){
@@ -93,9 +116,8 @@ public class PicCotroller {
                 tucaoService.update(t);
             }
         }
-        Map<String,Object> map=new HashMap<String, Object>();
-        map.put("error", 0);
-        map.put("msg", "0DFDFDF");
+
+
         Object obj = new Object();
         String jsonString = JSON.toJSONString(map);
         return jsonString;
